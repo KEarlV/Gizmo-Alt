@@ -164,3 +164,21 @@
 - [x] Add regression tests for AI fallback normalization and sign-up URL/state construction.
 - [x] Verify the live AI preview and authentication surface, then mark all checklist items complete.
 - [x] Save the final checkpoint and push the completed project to KEarlV/Gizmo-Alt.
+
+# End-to-End Bug and Backend Audit
+
+- [x] Inventory project scripts, routes, environment usage, logs, deployment revision, and GitHub branch consistency.
+- [x] Run static, type, test, build, API, schema, authorization, and security-oriented checks.
+- [x] Reproduce frontend/runtime/backend issues and inspect responsive production behavior.
+- [x] Fix confirmed issues and add regression tests for each actionable bug.
+- [x] Re-run the full validation suite, save the audited checkpoint, and report remaining risks.
+
+# Confirmed Backend Finding
+
+- [x] Verify the production audit-log table and schema using the actual adminAuditLogs name; no missing migration was found.
+- [x] Confirm current schema/migration alignment during the audit; no additional migration was required for adminAuditLogs.
+
+- [x] Fix mobile top-bar overflow so navigation controls remain fully visible at narrow widths.
+- [x] Re-capture desktop/mobile screenshots and rerun validation after the responsive fix.
+
+- [x] Add a lightweight regression assertion for the narrow-viewport top-bar overflow safeguards.
