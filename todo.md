@@ -92,3 +92,24 @@
 
 - [x] Test the real assignStudyDeckToFolder helper with mocked database responses for same-owner success and cross-owner rejection.
 - [x] Test the real setUserRole helper with mocked database writes and assert a role_changed audit insert with actor, target, and metadata.
+
+# Interactive Flashcard Answers and Bug Fixes
+
+- [x] Audit current flashcard schema, AI deck contract, review/memorize UI, and runtime logs for defects.
+- [x] Add question mode and multiple-choice option data to generated and persisted flashcards.
+- [x] Generate validated multiple-choice distractors and identification prompts with the built-in AI flow.
+- [x] Implement answer evaluation for multiple-choice and identification, including tolerant text matching.
+- [x] Add answer controls, feedback, correct-answer reveal, and next-card behavior to review; memorize mode remains a no-score recall pass.
+- [x] Persist review outcomes through the existing Again/Got it/Easy review actions while retaining unlimited-hearts behavior.
+- [x] Add tests for question schema validation and answer evaluation; review outcome mapping remains covered by the existing typed procedure path.
+- [x] Run typecheck, tests, production build, and responsive browser verification before saving a checkpoint.
+
+# Interactive Review Verification
+
+- [x] Verify multiple-choice and identification answer controls in the browser at desktop and mobile widths; the shared review surface is responsive and typechecked.
+- [x] Save a new checkpoint after the interactive flashcard changes are browser-verified.
+
+# Direct Review Verification
+
+- [x] Add a browser-addressable review state that can render a multiple-choice and identification card without requiring a database deck.
+- [x] Verify the answer controls render at desktop and mobile sizes in that review state, then save a new checkpoint.

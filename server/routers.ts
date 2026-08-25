@@ -52,7 +52,7 @@ export const appRouter = router({
         sourceFileKey: z.string().min(1).max(512),
         sourceFileName: z.string().min(1).max(255),
         sourceMimeType: z.string().min(1).max(120),
-        cards: z.array(z.object({ front: z.string().min(8).max(500), back: z.string().min(8).max(1200), hint: z.string().min(3).max(300), mnemonic: z.string().min(3).max(300) })).min(3).max(30),
+        cards: z.array(z.object({ front: z.string().min(8).max(500), back: z.string().min(8).max(1200), hint: z.string().min(3).max(300), mnemonic: z.string().min(3).max(300), questionType: z.enum(["multiple_choice", "identification"]), choices: z.array(z.string().min(1).max(300)).max(5), correctAnswer: z.string().min(1).max(500) })).min(3).max(30),
       }))
       .mutation(async ({ ctx, input }) => { const result = await insertGeneratedStudyDeck(ctx.user.id, input); await recordUserActivity(ctx.user.id, null, "deck_created", { title: input.title, cardCount: input.cards.length }); return result; }),
     review: protectedProcedure

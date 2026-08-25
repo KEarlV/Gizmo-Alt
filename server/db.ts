@@ -213,6 +213,9 @@ export async function insertGeneratedStudyDeck(userId: number, generated: Genera
       back: card.back,
       hint: card.hint,
       mnemonic: card.mnemonic,
+      questionType: card.questionType,
+      choices: JSON.stringify(card.choices),
+      correctAnswer: card.correctAnswer,
       difficulty: "good",
       reviewCount: 0,
     }));
@@ -241,7 +244,7 @@ export async function replaceStudyDeckContents(userId: number, deckId: number, g
     if (!owned[0]) throw new Error("That deck is not available to this account.");
     await tx.delete(studyCards).where(eq(studyCards.deckId, deckId));
     await tx.update(studyDecks).set({ title: generated.title, sourceFileName: generated.sourceFileName, sourceFileKey: generated.sourceFileKey, sourceMimeType: generated.sourceMimeType, summary: generated.summary, mnemonic: generated.mnemonic, cardCount: generated.cards.length }).where(eq(studyDecks.id, deckId));
-    await tx.insert(studyCards).values(generated.cards.map((card) => ({ deckId, front: card.front, back: card.back, hint: card.hint, mnemonic: card.mnemonic, difficulty: "good" as const, reviewCount: 0 })));
+    await tx.insert(studyCards).values(generated.cards.map((card) => ({ deckId, front: card.front, back: card.back, hint: card.hint, mnemonic: card.mnemonic, questionType: card.questionType, choices: JSON.stringify(card.choices), correctAnswer: card.correctAnswer, difficulty: "good" as const, reviewCount: 0 })));
     return { id: deckId, title: generated.title, cardCount: generated.cards.length };
   });
 }
@@ -262,7 +265,7 @@ export async function getPublicStudyDeck(shareToken: string) {
   const deckRows = await db.select().from(studyDecks).where(eq(studyDecks.shareToken, shareToken)).limit(1);
   const deck = deckRows[0];
   if (!deck) return null;
-  const cards = await db.select({ id: studyCards.id, front: studyCards.front, back: studyCards.back, hint: studyCards.hint, mnemonic: studyCards.mnemonic }).from(studyCards).where(eq(studyCards.deckId, deck.id)).orderBy(studyCards.id);
+  const cards = await db.select({ id: studyCards.id, front: studyCards.front, back: studyCards.back, hint: studyCards.hint, mnemonic: studyCards.mnemonic, questionType: studyCards.questionType, choices: studyCards.choices, correctAnswer: studyCards.correctAnswer }).from(studyCards).where(eq(studyCards.deckId, deck.id)).orderBy(studyCards.id);
   return { deck, cards };
 }
 

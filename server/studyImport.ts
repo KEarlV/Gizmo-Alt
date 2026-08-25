@@ -12,11 +12,21 @@ const SUPPORTED_MIME_TYPES = new Set([
   "text/markdown",
 ]);
 
-const generatedCardSchema = z.object({
+export const generatedCardSchema = z.object({
   front: z.string().min(8).max(500),
   back: z.string().min(8).max(1200),
   hint: z.string().min(3).max(300),
   mnemonic: z.string().min(3).max(300),
+  questionType: z.enum(["multiple_choice", "identification"]),
+  choices: z.array(z.string().min(1).max(300)).max(5),
+  correctAnswer: z.string().min(1).max(500),
+}).superRefine((card, ctx) => {
+  if (card.questionType === "multiple_choice" && (card.choices.length < 2 || !card.choices.includes(card.correctAnswer))) {
+    ctx.addIssue({ code: "custom", message: "Multiple-choice cards need at least two choices including the correct answer.", path: ["choices"] });
+  }
+  if (card.questionType === "identification" && card.choices.length > 0) {
+    ctx.addIssue({ code: "custom", message: "Identification cards should not include answer choices.", path: ["choices"] });
+  }
 });
 
 export const generatedDeckSchema = z.object({
@@ -105,7 +115,7 @@ export async function generateDeckFromUpload(args: {
       },
       {
         role: "user",
-        content: `Create a study deck from the source below. Make 8-18 high-signal flashcards when the material supports it, otherwise make as many as the source supports. Each card should test one idea, with a concise answer, a gentle hint, and a memorable mnemonic. Also provide a short deck summary and one overall mnemonic.\n\nFILE: ${args.fileName}\nSOURCE:\n${source}`,
+        content: `Create a study deck from the source below. Make 8-18 high-signal flashcards when the material supports it, otherwise make as many as the source supports. Mix questionType between multiple_choice and identification when the material supports it. Multiple-choice cards must have 3-4 plausible choices and correctAnswer must exactly match one choice. Identification cards must have an empty choices array. Each card should test one idea, with a concise answer, a gentle hint, and a memorable mnemonic. Also provide a short deck summary and one overall mnemonic.\n\nFILE: ${args.fileName}\nSOURCE:\n${source}`,
       },
     ],
     response_format: {
@@ -130,8 +140,11 @@ export async function generateDeckFromUpload(args: {
                   back: { type: "string" },
                   hint: { type: "string" },
                   mnemonic: { type: "string" },
+                  questionType: { type: "string", enum: ["multiple_choice", "identification"] },
+                  choices: { type: "array", items: { type: "string" } },
+                  correctAnswer: { type: "string" },
                 },
-                required: ["front", "back", "hint", "mnemonic"],
+                required: ["front", "back", "hint", "mnemonic", "questionType", "choices", "correctAnswer"],
                 additionalProperties: false,
               },
             },
