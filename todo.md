@@ -163,4 +163,4 @@
 - [x] Add a visible Sign up/Create account action alongside sign-in using secure OAuth state handling.
 - [x] Add regression tests for AI fallback normalization and sign-up URL/state construction.
 - [x] Verify the live AI preview and authentication surface, then mark all checklist items complete.
-- [ ] Save the final checkpoint and push the completed project to KEarlV/Gizmo-Alt.
+- [x] Save the final checkpoint and push the completed project to KEarlV/Gizmo-Alt.
