@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractText, generatedDeckSchema, orderCardsByDifficulty, parseGeneratedDeckResponse, validateUpload } from "./studyImport";
+import { extractText, generatedCardSchema, generatedDeckSchema, orderCardsByDifficulty, parseGeneratedDeckResponse, validateUpload } from "./studyImport";
 
 describe("study import validation", () => {
   it("accepts supported study files through the 20 MB size limit", () => {
@@ -55,6 +55,19 @@ describe("study import validation", () => {
       ],
     });
     expect(parseGeneratedDeckResponse(raw).cards).toHaveLength(3);
+  });
+
+  it("rejects invalid AI difficulty and cognitive-skill metadata", () => {
+    const validCard = { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "identification", choices: [], correctAnswer: "A usable energy molecule for cells.", aiDifficulty: "easy", cognitiveSkill: "remember", questionRationale: "Tests direct recall of a definition." };
+    expect(() => generatedCardSchema.parse({ ...validCard, aiDifficulty: "extreme" })).toThrow();
+    expect(() => generatedCardSchema.parse({ ...validCard, cognitiveSkill: "memorize" })).toThrow();
+  });
+
+  it("rejects weak multiple-choice distractor sets", () => {
+    const validCard = { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "multiple_choice", choices: ["A usable energy molecule for cells.", "A cell wall protein.", "A genetic code carrier."], correctAnswer: "A usable energy molecule for cells.", aiDifficulty: "easy", cognitiveSkill: "remember", questionRationale: "Tests direct recognition of the core definition." };
+    expect(() => generatedCardSchema.parse({ ...validCard, choices: [validCard.correctAnswer, "A cell wall protein."] })).toThrow(/3-4 unique/);
+    expect(() => generatedCardSchema.parse({ ...validCard, choices: [validCard.correctAnswer, "A cell wall protein.", "A cell wall protein."] })).toThrow(/3-4 unique/);
+    expect(() => generatedCardSchema.parse({ ...validCard, correctAnswer: "Not an option" })).toThrow(/3-4 unique/);
   });
 
   it("rejects incomplete model output and malformed JSON", () => {
