@@ -147,20 +147,20 @@
 - [x] Update the AI prompt and JSON schema to analyze the full source and choose difficulty, question type, and distractors conceptually.
 - [x] Persist and display difficulty-aware metadata in the deck preview and review experience.
 - [x] Add regression tests for difficulty validation, easy-to-hard ordering, and intelligent choice constraints.
-- [ ] Run typecheck, tests, production build, verify the live generation flow, and save a checkpoint.
+- [x] Run typecheck, tests, production build, verify the live generation flow, and save a checkpoint.
 
 # AI Response Recovery and Sign Up
 
-- [ ] Diagnose why the uploaded PDF returns an unreadable deck after the difficulty metadata upgrade.
-- [ ] Make AI response normalization resilient while retaining valid AI-selected difficulty and question design.
-- [ ] Add a visible Sign up/Create account action alongside the sign-in control using the existing secure OAuth flow.
-- [ ] Add regression tests for legacy/incomplete AI card output and sign-up URL/state construction.
-- [ ] Run typecheck, tests, production build, verify the live upload/auth surface, and save a checkpoint.
+- [x] Diagnose why the uploaded PDF returns an unreadable deck after the difficulty metadata upgrade.
+- [x] Make AI response normalization resilient while retaining valid AI-selected difficulty and question design.
+- [x] Add a visible Sign up/Create account action alongside the sign-in control using the existing secure OAuth flow.
+- [x] Add regression tests for legacy/incomplete AI card output and sign-up URL/state construction.
+- [x] Run typecheck, tests, production build, verify the live upload/auth surface, and save a checkpoint.
 
 # Final Sign Up and GitHub Delivery
 
 - [x] Finish resilient AI response normalization for incomplete legacy card metadata.
 - [x] Add a visible Sign up/Create account action alongside sign-in using secure OAuth state handling.
 - [x] Add regression tests for AI fallback normalization and sign-up URL/state construction.
-- [ ] Verify the live AI preview and authentication surface, then mark all checklist items complete.
+- [x] Verify the live AI preview and authentication surface, then mark all checklist items complete.
 - [ ] Save the final checkpoint and push the completed project to KEarlV/Gizmo-Alt.
