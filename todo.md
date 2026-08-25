@@ -132,4 +132,11 @@
 - [x] Add a branded loading spinner and status message while OAuth callback processing is underway.
 - [x] Add an accessible logged-in user profile dropdown to the navigation bar with user information and account actions.
 - [x] Add or update tests for callback loading behavior and profile-menu state where practical.
-- [ ] Verify desktop/mobile UI, typecheck, tests, production build, and save a new checkpoint.
+- [x] Verify desktop/mobile UI, typecheck, tests, production build, and save a new checkpoint.
+
+# AI Generation 520 Fix
+
+- [x] Diagnose the production study-generation 520 and HTML-instead-of-JSON response.
+- [x] Fix the generation route/runtime failure path and preserve a clear user-facing error.
+- [x] Add regression coverage for non-JSON generation failures and successful generation responses.
+- [ ] Verify the upload-to-generation flow, run checks, and save a new checkpoint.

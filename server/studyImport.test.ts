@@ -33,6 +33,20 @@ describe("study import validation", () => {
     expect(deck.cards).toHaveLength(3);
   });
 
+  it("accepts a valid structured generation response", () => {
+    const raw = JSON.stringify({
+      title: "Cell Biology Recall",
+      summary: "Core organelles and their roles.",
+      mnemonic: "Mighty Cells Organize Resources.",
+      cards: [
+        { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "multiple_choice", choices: ["A usable energy molecule for cells.", "A cell wall protein."], correctAnswer: "A usable energy molecule for cells." },
+        { front: "What does a ribosome build?", back: "Proteins from amino acids.", hint: "Read the recipe.", mnemonic: "Ribo = recipe builder.", questionType: "identification", choices: [], correctAnswer: "Proteins from amino acids." },
+        { front: "What does a membrane control?", back: "What enters and leaves a cell.", hint: "Selective gate.", mnemonic: "Membrane = mindful gatekeeper.", questionType: "identification", choices: [], correctAnswer: "What enters and leaves a cell." },
+      ],
+    });
+    expect(parseGeneratedDeckResponse(raw).cards).toHaveLength(3);
+  });
+
   it("rejects incomplete model output and malformed JSON", () => {
     expect(() => generatedDeckSchema.parse({ title: "Too thin", cards: [] })).toThrow();
     expect(() => parseGeneratedDeckResponse("not-json")).toThrow(/unreadable deck/);

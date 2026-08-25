@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { humanizeGenerationError } from "@/lib/generationErrors";
 import type { ReactNode } from "react";
 import {
   ArrowUpRight,
@@ -486,7 +487,7 @@ function AiImportModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   const [preview, setPreview] = useState<{ title: string; summary: string; mnemonic: string; cards: Array<{ front: string; back: string; hint: string; mnemonic: string; questionType: QuestionType; choices: string[]; correctAnswer: string }>; sourceFileKey: string; sourceFileName: string; sourceMimeType: string } | null>(null);
   const [title, setTitle] = useState("");
   const [processingStage, setProcessingStage] = useState<"idle" | "reading" | "generating" | "validating">("idle");
-  const generateMutation = trpc.study.generateMaterial.useMutation({ onSuccess: (result) => { setProcessingStage("validating"); setPreview(result); setTitle(result.title); window.setTimeout(() => setProcessingStage("idle"), 650); }, onError: () => setProcessingStage("idle") });
+  const generateMutation = trpc.study.generateMaterial.useMutation({ onSuccess: (result) => { setProcessingStage("validating"); setPreview(result); setTitle(result.title); window.setTimeout(() => setProcessingStage("idle"), 650); }, onError: (error) => { setProcessingStage("idle"); setFileError(humanizeGenerationError(error)); } });
   const saveMutation = trpc.study.saveGeneratedDeck.useMutation({ onSuccess: (result) => { onCreated({ id: String(result.id), name: result.title, subject: "AI generated · from your notes", cards: result.cardCount, due: result.cardCount, progress: 0, accent: "persimmon", kind: "new", updated: "Just now" }); onClose(); } });
   const chooseFile = (nextFile?: File) => { if (!nextFile) return; const valid = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain", "text/markdown"]; if (!valid.includes(nextFile.type)) { setFile(null); setFileError("Mochi can import PDF, DOCX, TXT, or Markdown files."); generateMutation.reset(); return; } if (nextFile.size > 20 * 1024 * 1024) { setFile(null); setFileError("That file is larger than 20 MB. Try a shorter set of notes."); generateMutation.reset(); return; } setFileError(null); setFile(nextFile); };
   const startImport = async () => { if (!file) return; setFileError(null); setProcessingStage("reading"); try { const dataBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1] ?? ""); reader.onerror = () => reject(new Error("Miso could not read that file.")); reader.readAsDataURL(file); }); setProcessingStage("generating"); generateMutation.mutate({ fileName: file.name, mimeType: file.type, dataBase64 }); } catch (error) { setProcessingStage("idle"); setFileError(error instanceof Error ? error.message : "Miso could not read that file."); } };

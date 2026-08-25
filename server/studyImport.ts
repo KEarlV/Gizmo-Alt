@@ -107,7 +107,8 @@ export async function generateDeckFromUpload(args: {
 
   const response = await invokeLLM({
     model: "gpt-5-mini",
-    maxTokens: 5000,
+    maxTokens: 3200,
+    maxRetries: 1,
     messages: [
       {
         role: "system",
@@ -115,7 +116,7 @@ export async function generateDeckFromUpload(args: {
       },
       {
         role: "user",
-        content: `Create a study deck from the source below. Make 8-18 high-signal flashcards when the material supports it, otherwise make as many as the source supports. Mix questionType between multiple_choice and identification when the material supports it. Multiple-choice cards must have 3-4 plausible choices and correctAnswer must exactly match one choice. Identification cards must have an empty choices array. Each card should test one idea, with a concise answer, a gentle hint, and a memorable mnemonic. Also provide a short deck summary and one overall mnemonic.\n\nFILE: ${args.fileName}\nSOURCE:\n${source}`,
+        content: `Create a study deck from the source below. Make 6-12 high-signal flashcards when the material supports it, otherwise make as many as the source supports. Mix questionType between multiple_choice and identification when the material supports it. Multiple-choice cards must have 3-4 plausible choices and correctAnswer must exactly match one choice. Identification cards must have an empty choices array. Each card should test one idea, with a concise answer, a gentle hint, and a memorable mnemonic. Also provide a short deck summary and one overall mnemonic.\n\nFILE: ${args.fileName}\nSOURCE:\n${source}`,
       },
     ],
     response_format: {
