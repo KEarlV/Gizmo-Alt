@@ -125,4 +125,4 @@
 - [x] Diagnose the production OAuth callback 403 using the OAuth implementation, environment configuration, and runtime logs.
 - [x] Fix callback redirect/state validation without weakening CSRF protection.
 - [x] Add regression coverage for the production-shaped callback redirect and state path.
-- [ ] Run typecheck, tests, production build, and verify the deployed login surface before saving a checkpoint.
+- [x] Run typecheck, tests, production build, and verify the deployed login surface before saving a checkpoint.
