@@ -10,6 +10,12 @@ function getQueryParam(req: Request, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+export function isValidOAuthState(state: string, cookieHeader: string): boolean {
+  const { nonce } = decodeOAuthState(state);
+  const expectedNonce = parseCookieHeader(cookieHeader)[OAUTH_STATE_COOKIE];
+  return Boolean(nonce && expectedNonce && nonce === expectedNonce);
+}
+
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     const code = getQueryParam(req, "code");
@@ -23,13 +29,12 @@ export function registerOAuthRoutes(app: Express) {
     // CSRF guard: the nonce in `state` must match the one-time cookie that
     // startLogin set in the browser that began this login. An attacker can
     // forge `state`, but cannot plant this cookie in the victim's browser.
-    const { nonce } = decodeOAuthState(state);
-    const expectedNonce = parseCookieHeader(req.headers.cookie ?? "")[OAUTH_STATE_COOKIE];
-    if (!nonce || nonce !== expectedNonce) {
+    if (!isValidOAuthState(state, req.headers.cookie ?? "")) {
+      console.warn("[OAuth] Callback rejected: state nonce did not match the browser cookie");
       res.status(403).json({ error: "invalid oauth state" });
       return;
     }
-    res.clearCookie(OAUTH_STATE_COOKIE, { path: "/", secure: true, sameSite: "none" });
+    res.clearCookie(OAUTH_STATE_COOKIE, { path: "/", secure: true, sameSite: "lax" });
 
     try {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);

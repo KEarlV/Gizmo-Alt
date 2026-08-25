@@ -119,3 +119,10 @@
 - [x] Update upload guidance and error messages to consistently state the 20 MB limit.
 - [x] Add or update boundary tests for 20 MB acceptance and oversized-file rejection.
 - [x] Run typecheck, tests, production build, and save a new checkpoint.
+
+# OAuth Callback 403 Fix
+
+- [x] Diagnose the production OAuth callback 403 using the OAuth implementation, environment configuration, and runtime logs.
+- [x] Fix callback redirect/state validation without weakening CSRF protection.
+- [x] Add regression coverage for the production-shaped callback redirect and state path.
+- [ ] Run typecheck, tests, production build, and verify the deployed login surface before saving a checkpoint.
