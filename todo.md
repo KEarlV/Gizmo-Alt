@@ -113,3 +113,9 @@
 
 - [x] Add a browser-addressable review state that can render a multiple-choice and identification card without requiring a database deck.
 - [x] Verify the answer controls render at desktop and mobile sizes in that review state, then save a new checkpoint.
+# Upload Size Increase
+
+- [x] Raise supported AI study-file uploads from 8 MB to 20 MB in client and server validation.
+- [x] Update upload guidance and error messages to consistently state the 20 MB limit.
+- [x] Add or update boundary tests for 20 MB acceptance and oversized-file rejection.
+- [x] Run typecheck, tests, production build, and save a new checkpoint.

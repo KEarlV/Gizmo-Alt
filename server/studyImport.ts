@@ -2,7 +2,7 @@ import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { storagePut } from "./storage";
 
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 export const MAX_SOURCE_CHARS = 80_000;
 
 const SUPPORTED_MIME_TYPES = new Set([
@@ -46,7 +46,7 @@ export function validateUpload(fileName: string, mimeType: string, byteLength: n
     throw new Error("Mochi can import PDF, DOCX, TXT, or Markdown files.");
   }
   if (byteLength === 0) throw new Error("That file is empty. Choose a study source with some notes in it.");
-  if (byteLength > MAX_UPLOAD_BYTES) throw new Error("That file is larger than 8 MB. Try a shorter set of notes.");
+  if (byteLength > MAX_UPLOAD_BYTES) throw new Error("That file is larger than 20 MB. Try a shorter set of notes.");
   return true;
 }
 

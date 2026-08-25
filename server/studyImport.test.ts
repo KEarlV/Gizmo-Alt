@@ -2,15 +2,16 @@ import { describe, expect, it } from "vitest";
 import { extractText, generatedDeckSchema, parseGeneratedDeckResponse, validateUpload } from "./studyImport";
 
 describe("study import validation", () => {
-  it("accepts supported study files under the size limit", () => {
+  it("accepts supported study files through the 20 MB size limit", () => {
     expect(validateUpload("lecture-notes.pdf", "application/pdf", 1024)).toBe(true);
     expect(validateUpload("chapter.md", "text/markdown", 1024)).toBe(true);
+    expect(validateUpload("large-notes.txt", "text/plain", 20 * 1024 * 1024)).toBe(true);
   });
 
   it("rejects unsupported, empty, and oversized files", () => {
     expect(() => validateUpload("photo.png", "image/png", 1024)).toThrow(/PDF, DOCX, TXT/);
     expect(() => validateUpload("notes.txt", "text/plain", 0)).toThrow(/empty/);
-    expect(() => validateUpload("notes.txt", "text/plain", 8 * 1024 * 1024 + 1)).toThrow(/8 MB/);
+    expect(() => validateUpload("notes.txt", "text/plain", 20 * 1024 * 1024 + 1)).toThrow(/20 MB/);
   });
 
   it("extracts text and markdown content without changing the source", async () => {
