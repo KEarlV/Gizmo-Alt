@@ -136,7 +136,7 @@
 
 # AI Generation 520 Fix
 
-- [x] Diagnose the production study-generation 520 and HTML-instead-of-JSON response.
-- [x] Fix the generation route/runtime failure path and preserve a clear user-facing error.
+- [ ] Diagnose the production study-generation 520 and HTML-instead-of-JSON response.
+- [ ] Fix the generation route/runtime failure path and preserve a clear user-facing error.
 - [x] Add regression coverage for non-JSON generation failures and successful generation responses.
 - [ ] Verify the upload-to-generation flow, run checks, and save a new checkpoint.

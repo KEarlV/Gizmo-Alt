@@ -36,6 +36,9 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({ ok: true, service: "mochi-study" });
+  });
   // tRPC API
   app.use(
     "/api/trpc",
