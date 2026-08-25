@@ -140,3 +140,11 @@
 - [ ] Fix the generation route/runtime failure path and preserve a clear user-facing error.
 - [x] Add regression coverage for non-JSON generation failures and successful generation responses.
 - [ ] Verify the upload-to-generation flow, run checks, and save a new checkpoint.
+
+# AI Difficulty and Question Design
+
+- [ ] Extend generated card data with AI-assigned difficulty, cognitive skill, and question-design metadata.
+- [ ] Update the AI prompt and JSON schema to analyze the full source and choose difficulty, question type, and distractors conceptually.
+- [ ] Persist and display difficulty-aware metadata in the deck preview and review experience.
+- [ ] Add regression tests for difficulty validation, easy-to-hard ordering, and intelligent choice constraints.
+- [ ] Run typecheck, tests, production build, verify the live generation flow, and save a checkpoint.

@@ -20,9 +20,13 @@ export const generatedCardSchema = z.object({
   questionType: z.enum(["multiple_choice", "identification"]),
   choices: z.array(z.string().min(1).max(300)).max(5),
   correctAnswer: z.string().min(1).max(500),
+  aiDifficulty: z.enum(["easy", "medium", "hard"]),
+  cognitiveSkill: z.enum(["remember", "understand", "apply", "analyze", "evaluate"]),
+  questionRationale: z.string().min(12).max(240),
 }).superRefine((card, ctx) => {
-  if (card.questionType === "multiple_choice" && (card.choices.length < 2 || !card.choices.includes(card.correctAnswer))) {
-    ctx.addIssue({ code: "custom", message: "Multiple-choice cards need at least two choices including the correct answer.", path: ["choices"] });
+  const uniqueChoices = new Set(card.choices.map((choice) => choice.trim().toLowerCase()));
+  if (card.questionType === "multiple_choice" && (card.choices.length < 3 || card.choices.length > 4 || uniqueChoices.size !== card.choices.length || !card.choices.includes(card.correctAnswer))) {
+    ctx.addIssue({ code: "custom", message: "Multiple-choice cards need 3-4 unique concept-based choices including the correct answer.", path: ["choices"] });
   }
   if (card.questionType === "identification" && card.choices.length > 0) {
     ctx.addIssue({ code: "custom", message: "Identification cards should not include answer choices.", path: ["choices"] });
@@ -37,6 +41,12 @@ export const generatedDeckSchema = z.object({
 });
 
 export type GeneratedDeck = z.infer<typeof generatedDeckSchema>;
+
+const difficultyRank: Record<GeneratedDeck["cards"][number]["aiDifficulty"], number> = { easy: 0, medium: 1, hard: 2 };
+
+export function orderCardsByDifficulty(deck: GeneratedDeck): GeneratedDeck {
+  return { ...deck, cards: [...deck.cards].sort((a, b) => difficultyRank[a.aiDifficulty] - difficultyRank[b.aiDifficulty]) };
+}
 
 export function validateUpload(fileName: string, mimeType: string, byteLength: number) {
   const extension = fileName.toLowerCase().split(".").pop() ?? "";
@@ -116,7 +126,7 @@ export async function generateDeckFromUpload(args: {
       },
       {
         role: "user",
-        content: `Create a study deck from the source below. Make 6-12 high-signal flashcards when the material supports it, otherwise make as many as the source supports. Mix questionType between multiple_choice and identification when the material supports it. Multiple-choice cards must have 3-4 plausible choices and correctAnswer must exactly match one choice. Identification cards must have an empty choices array. Each card should test one idea, with a concise answer, a gentle hint, and a memorable mnemonic. Also provide a short deck summary and one overall mnemonic.\n\nFILE: ${args.fileName}\nSOURCE:\n${source}`,
+        content: `Create a study deck from the source below. First analyze the source from start to finish and identify the concepts, prerequisite relationships, common confusions, and likely learning progression. Make 6-12 high-signal flashcards when the material supports it, otherwise make as many as the source supports. Assign every card an aiDifficulty of easy, medium, or hard using retrieval complexity: easy = direct recognition/definition, medium = explain a relationship or distinguish similar concepts, hard = apply, analyze, or evaluate a situation using the source. Assign cognitiveSkill as remember, understand, apply, analyze, or evaluate. Return cards in easy-to-hard order, with hard cards saved for the end. Choose multiple_choice when carefully selected conceptual distractors can test discrimination; choose identification when recall is more valuable. Multiple-choice cards must have 3-4 unique plausible choices, exactly one correct answer, and distractors must be tempting misconceptions or nearby concepts from the source, never random filler. Identification cards must have an empty choices array. For every card, explain the question design briefly in questionRationale. Each card should test one idea, with a concise answer, a gentle hint, and a memorable mnemonic. Also provide a short deck summary and one overall mnemonic.\n\nFILE: ${args.fileName}\nSOURCE:\n${source}`,
       },
     ],
     response_format: {
@@ -144,8 +154,11 @@ export async function generateDeckFromUpload(args: {
                   questionType: { type: "string", enum: ["multiple_choice", "identification"] },
                   choices: { type: "array", items: { type: "string" } },
                   correctAnswer: { type: "string" },
+                  aiDifficulty: { type: "string", enum: ["easy", "medium", "hard"] },
+                  cognitiveSkill: { type: "string", enum: ["remember", "understand", "apply", "analyze", "evaluate"] },
+                  questionRationale: { type: "string" },
                 },
-                required: ["front", "back", "hint", "mnemonic", "questionType", "choices", "correctAnswer"],
+                required: ["front", "back", "hint", "mnemonic", "questionType", "choices", "correctAnswer", "aiDifficulty", "cognitiveSkill", "questionRationale"],
                 additionalProperties: false,
               },
             },
@@ -158,7 +171,7 @@ export async function generateDeckFromUpload(args: {
   });
 
   const raw = contentAsText(response.choices[0]?.message?.content);
-  const deck = parseGeneratedDeckResponse(raw);
+  const deck = orderCardsByDifficulty(parseGeneratedDeckResponse(raw));
   return {
     ...deck,
     sourceFileKey: stored.key,

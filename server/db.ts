@@ -216,6 +216,9 @@ export async function insertGeneratedStudyDeck(userId: number, generated: Genera
       questionType: card.questionType,
       choices: JSON.stringify(card.choices),
       correctAnswer: card.correctAnswer,
+      aiDifficulty: card.aiDifficulty,
+      cognitiveSkill: card.cognitiveSkill,
+      questionRationale: card.questionRationale,
       difficulty: "good",
       reviewCount: 0,
     }));

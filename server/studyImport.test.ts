@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractText, generatedDeckSchema, parseGeneratedDeckResponse, validateUpload } from "./studyImport";
+import { extractText, generatedDeckSchema, orderCardsByDifficulty, parseGeneratedDeckResponse, validateUpload } from "./studyImport";
 
 describe("study import validation", () => {
   it("accepts supported study files through the 20 MB size limit", () => {
@@ -25,12 +25,22 @@ describe("study import validation", () => {
       summary: "Core organelles and their roles.",
       mnemonic: "Mighty Cells Organize Resources.",
       cards: [
-        { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "multiple_choice", choices: ["A usable energy molecule for cells.", "A cell wall protein."], correctAnswer: "A usable energy molecule for cells." },
-        { front: "What does a ribosome build?", back: "Proteins from amino acids.", hint: "Read the recipe.", mnemonic: "Ribo = recipe builder.", questionType: "identification", choices: [], correctAnswer: "Proteins from amino acids." },
-        { front: "What does a membrane control?", back: "What enters and leaves a cell.", hint: "Selective gate.", mnemonic: "Membrane = mindful gatekeeper.", questionType: "identification", choices: [], correctAnswer: "What enters and leaves a cell." },
+        { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "multiple_choice", choices: ["A usable energy molecule for cells.", "A cell wall protein.", "A genetic code carrier."], correctAnswer: "A usable energy molecule for cells.", aiDifficulty: "easy", cognitiveSkill: "remember", questionRationale: "Tests direct recognition of the core definition." },
+        { front: "What does a ribosome build?", back: "Proteins from amino acids.", hint: "Read the recipe.", mnemonic: "Ribo = recipe builder.", questionType: "identification", choices: [], correctAnswer: "Proteins from amino acids.", aiDifficulty: "medium", cognitiveSkill: "understand", questionRationale: "Tests understanding of a process relationship." },
+        { front: "What does a membrane control?", back: "What enters and leaves a cell.", hint: "Selective gate.", mnemonic: "Membrane = mindful gatekeeper.", questionType: "identification", choices: [], correctAnswer: "What enters and leaves a cell.", aiDifficulty: "hard", cognitiveSkill: "apply", questionRationale: "Tests application of the gatekeeper concept." },
       ],
     });
     expect(deck.cards).toHaveLength(3);
+  });
+
+  it("orders generated cards from warm-up to stretch difficulty", () => {
+    const base = { front: "What is a cell?", back: "A basic unit of life.", hint: "Living systems.", mnemonic: "Cell = core life unit.", questionType: "identification" as const, choices: [], correctAnswer: "A basic unit of life.", cognitiveSkill: "remember" as const, questionRationale: "Tests a direct concept recall." };
+    const ordered = orderCardsByDifficulty({ title: "Order test", summary: "Difficulty ordering.", mnemonic: "Easy before hard.", cards: [
+      { ...base, aiDifficulty: "hard" as const, cognitiveSkill: "apply" as const },
+      { ...base, front: "What is ATP?", aiDifficulty: "easy" as const },
+      { ...base, front: "What does a membrane do?", aiDifficulty: "medium" as const, cognitiveSkill: "understand" as const },
+    ] });
+    expect(ordered.cards.map((card) => card.aiDifficulty)).toEqual(["easy", "medium", "hard"]);
   });
 
   it("accepts a valid structured generation response", () => {
@@ -39,9 +49,9 @@ describe("study import validation", () => {
       summary: "Core organelles and their roles.",
       mnemonic: "Mighty Cells Organize Resources.",
       cards: [
-        { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "multiple_choice", choices: ["A usable energy molecule for cells.", "A cell wall protein."], correctAnswer: "A usable energy molecule for cells." },
-        { front: "What does a ribosome build?", back: "Proteins from amino acids.", hint: "Read the recipe.", mnemonic: "Ribo = recipe builder.", questionType: "identification", choices: [], correctAnswer: "Proteins from amino acids." },
-        { front: "What does a membrane control?", back: "What enters and leaves a cell.", hint: "Selective gate.", mnemonic: "Membrane = mindful gatekeeper.", questionType: "identification", choices: [], correctAnswer: "What enters and leaves a cell." },
+        { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "multiple_choice", choices: ["A usable energy molecule for cells.", "A cell wall protein.", "A genetic code carrier."], correctAnswer: "A usable energy molecule for cells.", aiDifficulty: "easy", cognitiveSkill: "remember", questionRationale: "Tests direct recognition of the core definition." },
+        { front: "What does a ribosome build?", back: "Proteins from amino acids.", hint: "Read the recipe.", mnemonic: "Ribo = recipe builder.", questionType: "identification", choices: [], correctAnswer: "Proteins from amino acids.", aiDifficulty: "medium", cognitiveSkill: "understand", questionRationale: "Tests understanding of a process relationship." },
+        { front: "What does a membrane control?", back: "What enters and leaves a cell.", hint: "Selective gate.", mnemonic: "Membrane = mindful gatekeeper.", questionType: "identification", choices: [], correctAnswer: "What enters and leaves a cell.", aiDifficulty: "hard", cognitiveSkill: "apply", questionRationale: "Tests application of the gatekeeper concept." },
       ],
     });
     expect(parseGeneratedDeckResponse(raw).cards).toHaveLength(3);
