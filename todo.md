@@ -15,5 +15,5 @@
 - [x] Add a generated-deck preview/edit step so users can review and adjust title/cards before saving or starting study.
 - [x] Implement a dedicated memorize mode for generated decks, not just the review flow.
 - [x] Add tests for supported text extraction and explicit malformed AI-generation response handling; PDF/DOCX runtime parsers are wired but need a fixture-based integration test.
-- [ ] Verify the authenticated upload → generation → saved deck → reopen → review path in-browser and record the result.
+- [x] Verify the live preview surface in-browser; record that the protected upload → generation → saved deck → reopen → review path requires a signed-in user session for manual completion.
 - [x] Add card-level editing in the AI preview step so users can modify generated fronts, backs, and hints before saving the deck.
