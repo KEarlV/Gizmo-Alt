@@ -21,6 +21,7 @@ export const studyDecks = mysqlTable("studyDecks", {
   sourceFileName: varchar("sourceFileName", { length: 255 }),
   sourceFileKey: varchar("sourceFileKey", { length: 512 }),
   sourceMimeType: varchar("sourceMimeType", { length: 120 }),
+  shareToken: varchar("shareToken", { length: 64 }).unique(),
   summary: text("summary"),
   mnemonic: text("mnemonic"),
   cardCount: int("cardCount").default(0).notNull(),

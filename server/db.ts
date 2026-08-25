@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   type InsertStudyCard,
@@ -10,6 +10,7 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import type { GeneratedDeck } from "./studyImport";
+import { filterUserOwnedRows } from "./dashboardScope";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -64,6 +65,45 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+export async function getUserRecentActivity(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const [deckEvents, reviewEvents] = await Promise.all([
+    db.select({ id: studyDecks.id, title: studyDecks.title, cardCount: studyDecks.cardCount, updatedAt: studyDecks.updatedAt }).from(studyDecks).where(eq(studyDecks.userId, userId)).orderBy(desc(studyDecks.updatedAt)).limit(6),
+    db.select({ id: studyCards.id, title: studyDecks.title, difficulty: studyCards.difficulty, lastReviewedAt: studyCards.lastReviewedAt }).from(studyCards).innerJoin(studyDecks, eq(studyCards.deckId, studyDecks.id)).where(and(eq(studyDecks.userId, userId), eq(studyCards.reviewCount, 1))).orderBy(desc(studyCards.lastReviewedAt)).limit(6),
+  ]);
+  return [...deckEvents.map((event) => ({ kind: "deck" as const, id: `deck-${event.id}`, title: event.title, detail: `${event.cardCount} cards in your desk`, happenedAt: event.updatedAt })), ...reviewEvents.filter((event) => event.lastReviewedAt).map((event) => ({ kind: "review" as const, id: `review-${event.id}`, title: event.title, detail: `Card marked ${event.difficulty}`, happenedAt: event.lastReviewedAt! }))].sort((a, b) => b.happenedAt.getTime() - a.happenedAt.getTime()).slice(0, 8);
+}
+
+export async function getUserDashboardStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { deckCount: 0, cardCount: 0, recentDecks: [], recentActivity: [] };
+  const [deckTotal, cardTotal] = await Promise.all([
+    db.select({ value: count() }).from(studyDecks).where(eq(studyDecks.userId, userId)),
+    db.select({ value: count() }).from(studyCards).innerJoin(studyDecks, eq(studyCards.deckId, studyDecks.id)).where(eq(studyDecks.userId, userId)),
+  ]);
+  const recentDeckRows = await db.select({ id: studyDecks.id, userId: studyDecks.userId, title: studyDecks.title, cardCount: studyDecks.cardCount, updatedAt: studyDecks.updatedAt }).from(studyDecks).where(eq(studyDecks.userId, userId)).orderBy(desc(studyDecks.updatedAt)).limit(5);
+  const recentDecks = filterUserOwnedRows(recentDeckRows, userId).map(({ userId: _ownerId, ...deck }) => deck);
+  return { deckCount: Number(deckTotal[0]?.value ?? 0), cardCount: Number(cardTotal[0]?.value ?? 0), recentDecks, recentActivity: await getUserRecentActivity(userId) };
+}
+
+export async function setUserRole(actorUserId: number, targetUserId: number, role: "user" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  if (actorUserId === targetUserId && role !== "admin") throw new Error("You cannot remove your own admin access from this desk.");
+  const target = await db.select({ id: users.id }).from(users).where(eq(users.id, targetUserId)).limit(1);
+  if (!target[0]) return false;
+  await db.update(users).set({ role }).where(eq(users.id, targetUserId));
+  return true;
+}
+
+export async function listAdminUserSummaries() {
+  const db = await getDb();
+  if (!db) return [];
+  const allUsers = await db.select({ id: users.id, openId: users.openId, name: users.name, email: users.email, role: users.role, lastSignedIn: users.lastSignedIn, createdAt: users.createdAt }).from(users).orderBy(desc(users.lastSignedIn));
+  return Promise.all(allUsers.map(async (user) => ({ ...user, ...(await getUserDashboardStats(user.id)) })));
+}
+
 export async function listStudyDecks(userId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -109,6 +149,58 @@ export async function insertGeneratedStudyDeck(userId: number, generated: Genera
     await tx.insert(studyCards).values(cardValues);
     return { id: deckId, title: generated.title, summary: generated.summary, mnemonic: generated.mnemonic, cardCount: generated.cards.length };
   });
+}
+
+export async function deleteStudyDeck(userId: number, deckId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  return db.transaction(async (tx) => {
+    const owned = await tx.select({ id: studyDecks.id }).from(studyDecks).where(and(eq(studyDecks.id, deckId), eq(studyDecks.userId, userId))).limit(1);
+    if (!owned[0]) return false;
+    await tx.delete(studyCards).where(eq(studyCards.deckId, deckId));
+    await tx.delete(studyDecks).where(eq(studyDecks.id, deckId));
+    return true;
+  });
+}
+
+export async function replaceStudyDeckContents(userId: number, deckId: number, generated: GeneratedDeck & { sourceFileKey: string; sourceFileName: string; sourceMimeType: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  return db.transaction(async (tx) => {
+    const owned = await tx.select({ id: studyDecks.id }).from(studyDecks).where(and(eq(studyDecks.id, deckId), eq(studyDecks.userId, userId))).limit(1);
+    if (!owned[0]) throw new Error("That deck is not available to this account.");
+    await tx.delete(studyCards).where(eq(studyCards.deckId, deckId));
+    await tx.update(studyDecks).set({ title: generated.title, sourceFileName: generated.sourceFileName, sourceFileKey: generated.sourceFileKey, sourceMimeType: generated.sourceMimeType, summary: generated.summary, mnemonic: generated.mnemonic, cardCount: generated.cards.length }).where(eq(studyDecks.id, deckId));
+    await tx.insert(studyCards).values(generated.cards.map((card) => ({ deckId, front: card.front, back: card.back, hint: card.hint, mnemonic: card.mnemonic, difficulty: "good" as const, reviewCount: 0 })));
+    return { id: deckId, title: generated.title, cardCount: generated.cards.length };
+  });
+}
+
+export async function createStudyDeckShare(userId: number, deckId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  const owned = await db.select({ id: studyDecks.id, shareToken: studyDecks.shareToken }).from(studyDecks).where(and(eq(studyDecks.id, deckId), eq(studyDecks.userId, userId))).limit(1);
+  if (!owned[0]) throw new Error("That deck is not available to this account.");
+  const shareToken = owned[0].shareToken ?? crypto.randomUUID().replace(/-/g, "");
+  if (!owned[0].shareToken) await db.update(studyDecks).set({ shareToken }).where(eq(studyDecks.id, deckId));
+  return shareToken;
+}
+
+export async function getPublicStudyDeck(shareToken: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const deckRows = await db.select().from(studyDecks).where(eq(studyDecks.shareToken, shareToken)).limit(1);
+  const deck = deckRows[0];
+  if (!deck) return null;
+  const cards = await db.select({ id: studyCards.id, front: studyCards.front, back: studyCards.back, hint: studyCards.hint, mnemonic: studyCards.mnemonic }).from(studyCards).where(eq(studyCards.deckId, deck.id)).orderBy(studyCards.id);
+  return { deck, cards };
+}
+
+export async function getStudyDeckSource(userId: number, deckId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select({ id: studyDecks.id, sourceFileKey: studyDecks.sourceFileKey, sourceFileName: studyDecks.sourceFileName, sourceMimeType: studyDecks.sourceMimeType }).from(studyDecks).where(and(eq(studyDecks.id, deckId), eq(studyDecks.userId, userId))).limit(1);
+  return rows[0];
 }
 
 export async function recordStudyCardReview(userId: number, cardId: number, difficulty: "again" | "good" | "easy") {

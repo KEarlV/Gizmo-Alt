@@ -8,6 +8,13 @@
       "when": 1787632723525,
       "tag": "0000_spicy_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1787636011330,
+      "tag": "0001_futuristic_loa",
+      "breakpoints": true
     }
   ]
 }
