@@ -57,6 +57,18 @@ describe("study import validation", () => {
     expect(parseGeneratedDeckResponse(raw).cards).toHaveLength(3);
   });
 
+  it("recovers fenced legacy JSON and fills missing AI metadata", () => {
+    const raw = "```json\n" + JSON.stringify({ title: "Legacy deck", summary: "A legacy response with enough source detail.", mnemonic: "Keep the thread.", cards: [
+      { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = power.", questionType: "multiple_choice", choices: ["A usable energy molecule for cells.", "A cell wall protein."], correctAnswer: "A usable energy molecule for cells." },
+      { front: "What does a ribosome build?", back: "Proteins from amino acids.", hint: "Read the recipe.", mnemonic: "Ribo builds.", questionType: "identification", choices: [], correctAnswer: "Proteins from amino acids." },
+      { front: "What does a membrane control?", back: "What enters and leaves a cell.", hint: "Selective gate.", mnemonic: "Mindful gate.", questionType: "identification", choices: [], correctAnswer: "What enters and leaves a cell." },
+    ] }) + "\n```";
+    const recovered = parseGeneratedDeckResponse(raw);
+    expect(recovered.cards[0].aiDifficulty).toBe("easy");
+    expect(recovered.cards[0].choices).toHaveLength(4);
+    expect(recovered.cards[2].questionRationale).toContain("Recovered");
+  });
+
   it("rejects invalid AI difficulty and cognitive-skill metadata", () => {
     const validCard = { front: "What is ATP?", back: "A usable energy molecule for cells.", hint: "Cell power.", mnemonic: "ATP = available tiny power.", questionType: "identification", choices: [], correctAnswer: "A usable energy molecule for cells.", aiDifficulty: "easy", cognitiveSkill: "remember", questionRationale: "Tests direct recall of a definition." };
     expect(() => generatedCardSchema.parse({ ...validCard, aiDifficulty: "extreme" })).toThrow();

@@ -33,6 +33,19 @@ export const generatedCardSchema = z.object({
   }
 });
 
+const recoveryCardSchema = z.object({
+  front: z.string().min(8).max(500),
+  back: z.string().min(8).max(1200),
+  hint: z.string().min(3).max(300),
+  mnemonic: z.string().min(3).max(300),
+  questionType: z.enum(["multiple_choice", "identification"]),
+  choices: z.array(z.string().min(1).max(300)).max(5),
+  correctAnswer: z.string().min(1).max(500),
+  aiDifficulty: z.enum(["easy", "medium", "hard"]).optional(),
+  cognitiveSkill: z.enum(["remember", "understand", "apply", "analyze", "evaluate"]).optional(),
+  questionRationale: z.string().min(12).max(240).optional(),
+});
+
 export const generatedDeckSchema = z.object({
   title: z.string().min(2).max(180),
   summary: z.string().min(10).max(800),
@@ -94,11 +107,28 @@ function contentAsText(content: unknown): string {
 export function parseGeneratedDeckResponse(raw: string): GeneratedDeck {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    parsed = JSON.parse(cleaned);
   } catch {
     throw new Error("The study companion returned an unreadable deck. Please try the import again.");
   }
-  return generatedDeckSchema.parse(parsed);
+  const recovered = z.object({
+    title: z.string().min(2).max(180),
+    summary: z.string().min(10).max(800),
+    mnemonic: z.string().min(3).max(300),
+    cards: z.array(recoveryCardSchema).min(3).max(30),
+  }).parse(parsed);
+  const enriched = {
+    ...recovered,
+    cards: recovered.cards.map((card, index) => ({
+      ...card,
+      choices: card.questionType === "multiple_choice" ? Array.from(new Set([card.correctAnswer, ...card.choices, "A nearby concept", "A common misconception"])).slice(0, 4) : [],
+      aiDifficulty: card.aiDifficulty ?? (index < Math.ceil(recovered.cards.length / 3) ? "easy" : index < Math.ceil((recovered.cards.length * 2) / 3) ? "medium" : "hard"),
+      cognitiveSkill: card.cognitiveSkill ?? (card.questionType === "multiple_choice" ? "understand" : "remember"),
+      questionRationale: card.questionRationale ?? "Recovered from an earlier deck format; difficulty was estimated from the question type and position.",
+    })),
+  };
+  return generatedDeckSchema.parse(enriched);
 }
 
 export async function generateDeckFromUpload(args: {
