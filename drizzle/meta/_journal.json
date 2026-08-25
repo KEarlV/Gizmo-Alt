@@ -15,6 +15,13 @@
       "when": 1787636011330,
       "tag": "0001_futuristic_loa",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787637802392,
+      "tag": "0002_neat_famine",
+      "breakpoints": true
     }
   ]
 }

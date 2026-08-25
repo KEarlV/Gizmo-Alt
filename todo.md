@@ -62,3 +62,33 @@
 - [x] Await clipboard writes and surface true share-copy success or failure in all share actions.
 - [x] Add an isolated regeneration-path test for source availability and replacement behavior without live AI or storage calls.
 - [x] Add mocked regeneration-flow coverage for validated source bytes, generated replacement content, and replacement failure handling without live storage or AI calls.
+
+# Profiles, Audit Logs, and Deck Folders
+
+- [x] Initialize and write a reusable Mochi study-app implementation skill following skill-creator conventions.
+- [x] Add user profile fields for avatar, display name, and study preferences.
+- [x] Add protected profile/settings read and update procedures with validation.
+- [x] Add custom folder/category persistence and ownership-safe deck assignment procedures.
+- [x] Add an audit-log table and admin-only audit-log query for role changes and monitored user activity.
+- [x] Record role changes and relevant user activity in the audit log without storing sensitive source content.
+- [x] Add a profile and account settings page with avatar, display name, and study preference controls.
+- [x] Add folder/category management UI and deck assignment controls in the library.
+- [x] Add an admin audit-log section to the dashboard.
+- [x] Add tests for profile validation, folder-access authorization, audit authorization, dashboard scoping, and role-change logging paths.
+- [x] Validate the reusable skill, run typecheck/tests/build, verify browser routes, and save a checkpoint.
+
+# Final Evidence Gaps
+
+- [x] Add focused tests for folder ownership and assignment mutations.
+- [x] Add a role-change audit logging assertion with a mocked persistence boundary.
+- [x] Save a new project checkpoint after the profile, folder, and audit-log changes.
+
+# Integration Test Evidence
+
+- [x] Exercise folder assignment behavior through the database helper boundary with allowed and cross-user-denied cases.
+- [x] Exercise role-change persistence with a mocked database boundary and assert the emitted role_changed audit event.
+
+# Real Helper Boundary Coverage
+
+- [x] Test the real assignStudyDeckToFolder helper with mocked database responses for same-owner success and cross-owner rejection.
+- [x] Test the real setUserRole helper with mocked database writes and assert a role_changed audit insert with actor, target, and metadata.

@@ -1,16 +1,19 @@
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   type InsertStudyCard,
   type InsertStudyDeck,
   type InsertUser,
+  adminAuditLogs,
   studyCards,
   studyDecks,
+  studyFolders,
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import type { GeneratedDeck } from "./studyImport";
 import { filterUserOwnedRows } from "./dashboardScope";
+import { buildRoleAuditEvent, isOwnedByUser } from "./accountTools";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -65,6 +68,71 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+export async function getUserProfile(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select({ id: users.id, name: users.name, email: users.email, avatarUrl: users.avatarUrl, studyPreferences: users.studyPreferences, role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0];
+}
+
+export async function updateUserProfile(userId: number, input: { name?: string; avatarUrl?: string | null; studyPreferences?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  await db.update(users).set({ name: input.name, avatarUrl: input.avatarUrl, studyPreferences: input.studyPreferences }).where(eq(users.id, userId));
+  return getUserProfile(userId);
+}
+
+export async function listStudyFolders(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(studyFolders).where(eq(studyFolders.userId, userId)).orderBy(desc(studyFolders.updatedAt));
+}
+
+export async function createStudyFolder(userId: number, name: string, color: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  const result = await db.insert(studyFolders).values({ userId, name, color });
+  const folderId = Number((result as unknown as Array<{ insertId?: number }>)[0]?.insertId ?? 0);
+  return { id: folderId, name, color };
+}
+
+export async function assignStudyDeckToFolder(userId: number, deckId: number, folderId: number | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  const deck = await db.select({ id: studyDecks.id }).from(studyDecks).where(and(eq(studyDecks.id, deckId), eq(studyDecks.userId, userId))).limit(1);
+  if (!deck[0]) throw new Error("That deck is not available to this account.");
+  if (folderId !== null) {
+    const folder = await db.select({ id: studyFolders.id, userId: studyFolders.userId }).from(studyFolders).where(eq(studyFolders.id, folderId)).limit(1);
+    if (!folder[0] || !isOwnedByUser(folder[0].userId, userId)) throw new Error("That folder is not available to this account.");
+  }
+  await db.update(studyDecks).set({ folderId }).where(eq(studyDecks.id, deckId));
+  return true;
+}
+
+export async function deleteStudyFolder(userId: number, folderId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  const folder = await db.select({ id: studyFolders.id }).from(studyFolders).where(and(eq(studyFolders.id, folderId), eq(studyFolders.userId, userId))).limit(1);
+  if (!folder[0]) return false;
+  await db.update(studyDecks).set({ folderId: null }).where(eq(studyDecks.folderId, folderId));
+  await db.delete(studyFolders).where(eq(studyFolders.id, folderId));
+  return true;
+}
+
+export async function recordAdminAudit(actorUserId: number, targetUserId: number | null, action: string, metadata?: Record<string, unknown>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available. Please try again in a moment.");
+  await db.insert(adminAuditLogs).values({ actorUserId, targetUserId, action, metadata: metadata ? JSON.stringify(metadata) : null });
+}
+
+export const recordUserActivity = recordAdminAudit;
+
+export async function listAdminAuditLogs() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(100);
+}
+
 export async function getUserRecentActivity(userId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -94,6 +162,8 @@ export async function setUserRole(actorUserId: number, targetUserId: number, rol
   const target = await db.select({ id: users.id }).from(users).where(eq(users.id, targetUserId)).limit(1);
   if (!target[0]) return false;
   await db.update(users).set({ role }).where(eq(users.id, targetUserId));
+  const auditEvent = buildRoleAuditEvent(actorUserId, targetUserId, role);
+  await recordAdminAudit(auditEvent.actorUserId, auditEvent.targetUserId, auditEvent.action, auditEvent.metadata);
   return true;
 }
 
