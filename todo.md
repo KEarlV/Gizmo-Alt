@@ -126,3 +126,10 @@
 - [x] Fix callback redirect/state validation without weakening CSRF protection.
 - [x] Add regression coverage for the production-shaped callback redirect and state path.
 - [x] Run typecheck, tests, production build, and verify the deployed login surface before saving a checkpoint.
+
+# OAuth Loading and Profile Dropdown
+
+- [x] Add a branded loading spinner and status message while OAuth callback processing is underway.
+- [x] Add an accessible logged-in user profile dropdown to the navigation bar with user information and account actions.
+- [x] Add or update tests for callback loading behavior and profile-menu state where practical.
+- [ ] Verify desktop/mobile UI, typecheck, tests, production build, and save a new checkpoint.

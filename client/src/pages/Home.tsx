@@ -8,10 +8,15 @@ import type { FormEvent } from "react";
 import { trpc } from "@/lib/trpc";
 import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { ReactNode } from "react";
 import {
   ArrowUpRight,
   BarChart3,
+  ChevronDown,
+  LogOut,
+  ShieldCheck,
+  UserRound,
   Copy,
   Download,
   BookOpen,
@@ -336,20 +341,24 @@ function SideRail({ view, setView }: { view: View; setView: (view: Exclude<View,
   );
 }
 
-function TopBar({ onFocusClick, onStartReview, onImport, isAuthenticated, userName, isAdmin, onLogin, onLogout }: { onFocusClick: () => void; onStartReview: () => void; onImport: () => void; isAuthenticated: boolean; userName?: string | null; isAdmin: boolean; onLogin: () => void; onLogout: () => void }) {
+type ProfileUser = { name?: string | null; email?: string | null; avatarUrl?: string | null; role?: "admin" | "user" | null };
+
+function ProfileDropdown({ user, isAdmin, onLogout }: { user: ProfileUser; isAdmin: boolean; onLogout: () => void }) {
+  const displayName = user.name?.trim() || "Study gardener";
+  const initials = displayName.split(/\\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "MS";
+  return <DropdownMenu><DropdownMenuTrigger asChild><button className="profile-trigger" aria-label={`Open profile menu for ${displayName}`}><span className="profile-trigger__avatar">{user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials}</span><span className="profile-trigger__copy"><strong>{displayName}</strong><small>{user.email ?? "Account"}</small></span><ChevronDown size={15} aria-hidden="true" /></button></DropdownMenuTrigger><DropdownMenuContent align="end" className="profile-menu"><DropdownMenuLabel className="profile-menu__label"><span className="profile-menu__identity"><span className="profile-trigger__avatar profile-trigger__avatar--large">{user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials}</span><span><strong>{displayName}</strong><small>{user.email ?? "No email on file"}</small></span></span></DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => { window.location.href = "/settings"; }}><UserRound size={15} /> Account settings</DropdownMenuItem>{isAdmin && <DropdownMenuItem onSelect={() => { window.location.href = "/admin"; }}><ShieldCheck size={15} /> Admin dashboard</DropdownMenuItem>}<DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onSelect={() => { void onLogout(); }}><LogOut size={15} /> Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+}
+
+function TopBar({ onFocusClick, onStartReview, onImport, isAuthenticated, user, isAdmin, onLogin, onLogout }: { onFocusClick: () => void; onStartReview: () => void; onImport: () => void; isAuthenticated: boolean; user: ProfileUser | null; isAdmin: boolean; onLogin: () => void; onLogout: () => void }) {
   return (
     <header className="top-bar">
       <div className="breadcrumb"><span>Workspace</span><ChevronRight size={14} /><strong>Today</strong></div>
       <div className="top-bar__actions">
-        <label className="search-box">
-          <Search size={17} />
-          <input aria-label="Search decks" placeholder="Search decks" />
-          <span className="search-box__shortcut">⌘ K</span>
-        </label>
+        <label className="search-box"><Search size={17} /><input aria-label="Search decks" placeholder="Search decks" /><span className="search-box__shortcut">⌘ K</span></label>
         <UnlimitedHearts onClick={onFocusClick} />
         <button className="top-bar__import" onClick={onImport}><Upload size={14} /> AI import</button>
-        {isAdmin && <a className="top-bar__account" href="/admin">Admin</a>}
-        {isAuthenticated ? <button className="top-bar__account" onClick={onLogout} title="Sign out">{userName ?? "Account"}</button> : <button className="top-bar__account" onClick={onLogin}>Sign in</button>}
+        {isAuthenticated && isAdmin && <a className="top-bar__account" href="/admin">Admin</a>}
+        {isAuthenticated && user ? <ProfileDropdown user={user} isAdmin={isAdmin} onLogout={onLogout} /> : <button className="top-bar__account" onClick={onLogin}>Sign in</button>}
         <button className="top-bar__review" onClick={onStartReview}><Play size={15} fill="currentColor" /> Start review</button>
       </div>
     </header>
@@ -526,5 +535,5 @@ export default function Home() {
   const createFolder = () => { const name = window.prompt("Name this folder"); if (name?.trim()) createFolderMutation.mutate({ name: name.trim(), color: "persimmon" }); };
   const assignFolder = (id: string, folderId: number | null) => { const deckId = manageId(id); if (deckId) assignFolderMutation.mutate({ deckId, folderId }); };
 
-  return <div className="app-shell"><SideRail view={view} setView={setView} /><div className="app-main">{authError && <div className="auth-alert" role="status">Sign-in needs another try. <button onClick={() => startLogin()}>Reconnect</button></div>}{shareNotice && <div className="copy-toast" role="status"><Copy size={14} /> {shareNotice}</div>}<TopBar onFocusClick={() => setFocusInfoOpen((open) => !open)} onStartReview={() => startReview()} onImport={() => setAiImportOpen(true)} isAuthenticated={isAuthenticated} userName={user?.name} isAdmin={user?.role === "admin"} onLogin={() => startLogin()} onLogout={() => { void logout(); }} />{focusInfoOpen && <div className="focus-popover"><div className="focus-popover__icon"><InfinityIcon size={20} /></div><div><strong>Deep study mode is on.</strong><span>No hearts to count, no cooldown to wait through. Keep going while the idea is alive.</span></div><button onClick={() => setFocusInfoOpen(false)} aria-label="Close focus info"><X size={15} /></button></div>}{view === "home" && <Dashboard decks={visibleDecks} onReview={startReview} onViewDecks={() => setView("decks")} onShowFocus={() => setFocusInfoOpen(true)} userName={user?.name} stats={accountDashboardQuery.data} />}{view === "decks" && <DecksView decks={visibleDecks} onReview={startReview} onCreate={() => setNewDeckOpen(true)} onDelete={deleteDeck} onRegenerate={regenerateDeck} onExport={exportDeck} onShare={shareDeck} />}{view === "insights" && <InsightsView />}{view === "library" && <LibraryView decks={visibleDecks} folders={foldersQuery.data ?? []} onReview={startReview} onMemorize={startMemorize} onDelete={deleteDeck} onRegenerate={regenerateDeck} onExport={exportDeck} onShare={shareDeck} onCreateFolder={createFolder} onAssignFolder={assignFolder} />}{view === "review" && selectedDeck && <ReviewView deck={selectedDeck} cardsOverride={importedDeckId === Number(selectedDeck.id) ? importedDeckQuery.data?.cards.map((card) => ({ prompt: card.front, answer: card.back, hint: card.hint ?? "Keep the core idea close.", questionType: card.questionType, choices: parseChoices(card.choices), correctAnswer: card.correctAnswer ?? card.back, persistedId: card.id })) : undefined} onExit={() => setView("home")} />}{view === "memorize" && selectedDeck && <MemorizeView deck={selectedDeck} cards={importedDeckQuery.data?.cards.map((card) => ({ prompt: card.front, answer: card.back, hint: card.hint ?? "Keep the core idea close.", questionType: card.questionType, choices: parseChoices(card.choices), correctAnswer: card.correctAnswer ?? card.back, persistedId: card.id })) ?? []} onExit={() => setView("home")} />}</div>{aiImportOpen && <AiImportModal onClose={() => setAiImportOpen(false)} onCreated={addImportedDeck} />}{newDeckOpen && <NewDeckModal onClose={() => setNewDeckOpen(false)} onCreate={createDeck} />}</div>;
+  return <div className="app-shell"><SideRail view={view} setView={setView} /><div className="app-main">{authError && <div className="auth-alert" role="status">Sign-in needs another try. <button onClick={() => startLogin()}>Reconnect</button></div>}{shareNotice && <div className="copy-toast" role="status"><Copy size={14} /> {shareNotice}</div>}<TopBar onFocusClick={() => setFocusInfoOpen((open) => !open)} onStartReview={() => startReview()} onImport={() => setAiImportOpen(true)} isAuthenticated={isAuthenticated} user={user} isAdmin={user?.role === "admin"} onLogin={() => startLogin()} onLogout={() => { void logout(); }} />{focusInfoOpen && <div className="focus-popover"><div className="focus-popover__icon"><InfinityIcon size={20} /></div><div><strong>Deep study mode is on.</strong><span>No hearts to count, no cooldown to wait through. Keep going while the idea is alive.</span></div><button onClick={() => setFocusInfoOpen(false)} aria-label="Close focus info"><X size={15} /></button></div>}{view === "home" && <Dashboard decks={visibleDecks} onReview={startReview} onViewDecks={() => setView("decks")} onShowFocus={() => setFocusInfoOpen(true)} userName={user?.name} stats={accountDashboardQuery.data} />}{view === "decks" && <DecksView decks={visibleDecks} onReview={startReview} onCreate={() => setNewDeckOpen(true)} onDelete={deleteDeck} onRegenerate={regenerateDeck} onExport={exportDeck} onShare={shareDeck} />}{view === "insights" && <InsightsView />}{view === "library" && <LibraryView decks={visibleDecks} folders={foldersQuery.data ?? []} onReview={startReview} onMemorize={startMemorize} onDelete={deleteDeck} onRegenerate={regenerateDeck} onExport={exportDeck} onShare={shareDeck} onCreateFolder={createFolder} onAssignFolder={assignFolder} />}{view === "review" && selectedDeck && <ReviewView deck={selectedDeck} cardsOverride={importedDeckId === Number(selectedDeck.id) ? importedDeckQuery.data?.cards.map((card) => ({ prompt: card.front, answer: card.back, hint: card.hint ?? "Keep the core idea close.", questionType: card.questionType, choices: parseChoices(card.choices), correctAnswer: card.correctAnswer ?? card.back, persistedId: card.id })) : undefined} onExit={() => setView("home")} />}{view === "memorize" && selectedDeck && <MemorizeView deck={selectedDeck} cards={importedDeckQuery.data?.cards.map((card) => ({ prompt: card.front, answer: card.back, hint: card.hint ?? "Keep the core idea close.", questionType: card.questionType, choices: parseChoices(card.choices), correctAnswer: card.correctAnswer ?? card.back, persistedId: card.id })) ?? []} onExit={() => setView("home")} />}</div>{aiImportOpen && <AiImportModal onClose={() => setAiImportOpen(false)} onCreated={addImportedDeck} />}{newDeckOpen && <NewDeckModal onClose={() => setNewDeckOpen(false)} onCreate={createDeck} />}</div>;
 }

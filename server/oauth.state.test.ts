@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
-import { isValidOAuthState } from "./_core/oauth";
+import { isValidOAuthState, renderOAuthCallbackLoadingPage } from "./_core/oauth";
 
 describe("OAuth callback state validation", () => {
   it("accepts a matching nonce for a production callback redirect", () => {
@@ -22,6 +22,13 @@ describe("OAuth callback state validation", () => {
 
   it("fails closed for malformed state", () => {
     expect(isValidOAuthState("not-valid-state", `${OAUTH_STATE_COOKIE}=anything`)).toBe(false);
+  });
+
+  it("renders an accessible callback loading state", () => {
+    const page = renderOAuthCallbackLoadingPage();
+    expect(page).toContain("Signing you in");
+    expect(page).toContain('role="status"');
+    expect(page).toContain("preparing Mochi");
   });
 });
 
